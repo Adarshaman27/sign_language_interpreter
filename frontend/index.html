@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>SignBridge - ISL Interpreter</title>
+
+    <link rel="stylesheet" href="style.css">
+
+    <!-- TensorFlow.js -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.20.0"></script>
+
+    <!-- MediaPipe -->
+    <script type="module">
+        import {
+            HandLandmarker,
+            FilesetResolver
+        } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22";
+
+        window.HandLandmarker = HandLandmarker;
+        window.FilesetResolver = FilesetResolver;
+    </script>
+</head>
+
+<body>
+
+<header class="navbar">
+    <div class="logo">
+        <span>🤟</span>
+        <strong>SignBridge</strong>
+    </div>
+
+    <div class="status">
+        <span id="statusDot"></span>
+        <span id="statusText">System Offline</span>
+    </div>
+</header>
+
+
+<main>
+
+    <!-- HERO -->
+    <section class="hero">
+        <div>
+            <p class="tag">AI-POWERED ACCESSIBILITY</p>
+
+            <h1>
+                Breaking the barrier<br>
+                between <span>sign & speech.</span>
+            </h1>
+
+            <p class="heroText">
+                SignBridge converts Indian Sign Language into
+                understandable English sentences in real time.
+            </p>
+
+            <button id="startButton" class="primaryButton">
+                Start Interpreter
+            </button>
+        </div>
+
+        <div class="heroIcon">
+            🤟
+        </div>
+    </section>
+
+
+    <!-- INTERPRETER -->
+    <section class="interpreter">
+
+        <div class="cameraCard">
+
+            <div class="cardHeader">
+                <h2>Live Interpreter</h2>
+
+                <span id="cameraStatus">
+                    Camera Off
+                </span>
+            </div>
+
+            <div class="cameraContainer">
+
+                <video
+                    id="camera"
+                    autoplay
+                    playsinline>
+                </video>
+
+                <canvas id="overlay"></canvas>
+
+                <div id="cameraMessage">
+                    
+                </div>
+
+            </div>
+
+            <div class="cameraControls">
+
+                <button id="stopButton">
+                    Stop Camera
+                </button>
+
+                <button id="clearButton">
+                    Clear
+                </button>
+
+            </div>
+
+        </div>
+
+
+        <div class="resultCard">
+
+            <div class="resultSection">
+
+                <p class="label">
+                    DETECTED SIGN
+                </p>
+
+                <h2 id="detectedSign">
+                    —
+                </h2>
+
+                <div class="confidence">
+                    Confidence:
+                    <span id="confidence">
+                        0%
+                    </span>
+                </div>
+
+            </div>
+
+
+            <div class="divider"></div>
+
+
+            <div class="resultSection">
+
+                <p class="label">
+                    TRANSLATED SENTENCE
+                </p>
+
+                <div id="sentence"
+                     class="sentence">
+                    Start signing to translate...
+                </div>
+
+            </div>
+
+
+            <div class="resultButtons">
+
+                <button id="speakButton">
+                    🔊 Speak
+                </button>
+
+                <button id="geminiButton">
+                    ✨ Improve Sentence
+                </button>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- SOS -->
+    <section class="sosSection">
+
+        <div>
+            <p class="tag">SAFETY FEATURE</p>
+
+            <h2>
+                Need immediate help?
+            </h2>
+
+            <p>
+                SignBridge can help you quickly share your
+                location and contact emergency services.
+            </p>
+        </div>
+
+        <button id="sosButton"
+                class="sosButton">
+            🚨 SOS EMERGENCY
+        </button>
+
+    </section>
+
+
+    <!-- FEATURES -->
+    <section class="features">
+
+        <h2>Built for accessibility</h2>
+
+        <div class="featureGrid">
+
+            <div class="feature">
+                <div>🤟</div>
+                <h3>ISL Recognition</h3>
+                <p>
+                    Recognizes supported Indian Sign Language
+                    gestures using your camera.
+                </p>
+            </div>
+
+            <div class="feature">
+                <div>🧠</div>
+                <h3>AI Translation</h3>
+                <p>
+                    Converts recognized signs into readable
+                    English sentences.
+                </p>
+            </div>
+
+            <div class="feature">
+                <div>🔊</div>
+                <h3>Text to Speech</h3>
+                <p>
+                    Reads the translated sentence aloud.
+                </p>
+            </div>
+
+            <div class="feature">
+                <div>🚨</div>
+                <h3>Emergency SOS</h3>
+                <p>
+                    Quickly accesses emergency calling and
+                    location sharing.
+                </p>
+            </div>
+
+        </div>
+
+    </section>
+
+</main>
+
+
+<footer>
+    <p>
+        SignBridge © 2026 — Technology for accessible communication.
+    </p>
+</footer>
+
+
+<script src="app.js"></script>
+
+</body>
+</html>

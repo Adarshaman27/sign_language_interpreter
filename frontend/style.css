@@ -1,0 +1,388 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: Arial, Helvetica, sans-serif;
+    background: #f7f8fc;
+    color: #16181d;
+}
+
+.navbar {
+    height: 70px;
+    padding: 0 7%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: white;
+    border-bottom: 1px solid #e5e5e5;
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 22px;
+}
+
+.logo span {
+    font-size: 28px;
+}
+
+.status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+}
+
+#statusDot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #999;
+}
+
+
+main {
+    max-width: 1200px;
+    margin: auto;
+    padding: 40px 25px;
+}
+
+
+.hero {
+    min-height: 400px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 50px;
+    border-radius: 25px;
+    background: linear-gradient(135deg, #101828, #29344d);
+    color: white;
+    margin-bottom: 40px;
+}
+
+.tag {
+    font-size: 12px;
+    font-weight: bold;
+    letter-spacing: 2px;
+    margin-bottom: 15px;
+}
+
+.hero h1 {
+    font-size: 55px;
+    line-height: 1.05;
+    margin-bottom: 25px;
+}
+
+.hero h1 span {
+    color: #8ee6d1;
+}
+
+.heroText {
+    max-width: 580px;
+    line-height: 1.7;
+    color: #d8dce5;
+    margin-bottom: 30px;
+}
+
+.heroIcon {
+    font-size: 160px;
+}
+
+
+.primaryButton {
+    border: none;
+    padding: 15px 25px;
+    border-radius: 10px;
+    background: #8ee6d1;
+    color: #101828;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.primaryButton:hover {
+    transform: translateY(-2px);
+}
+
+
+.interpreter {
+    display: grid;
+    grid-template-columns: 1.5fr 1fr;
+    gap: 25px;
+    margin-bottom: 40px;
+}
+
+
+.cameraCard,
+.resultCard {
+    background: white;
+    border-radius: 20px;
+    padding: 25px;
+    border: 1px solid #e6e8ee;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.04);
+}
+
+
+.cardHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.cardHeader h2 {
+    font-size: 20px;
+}
+
+#cameraStatus {
+    padding: 7px 12px;
+    border-radius: 20px;
+    background: #eee;
+    font-size: 12px;
+}
+
+
+.cameraContainer {
+    position: relative;
+    width: 100%;
+    height: 430px;
+    background: #111;
+    border-radius: 15px;
+    overflow: hidden;
+}
+
+#camera {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transform: scaleX(-1);
+}
+
+#overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+
+#cameraMessage {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: white;
+    font-size: 18px;
+    background: rgba(0,0,0,0.35);
+}
+
+
+.cameraControls {
+    display: flex;
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.cameraControls button,
+.resultButtons button {
+    padding: 12px 18px;
+    border: 1px solid #ddd;
+    background: white;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+
+.resultCard {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.label {
+    font-size: 11px;
+    letter-spacing: 2px;
+    color: #777;
+    font-weight: bold;
+}
+
+.resultSection h2 {
+    font-size: 40px;
+    margin-top: 10px;
+}
+
+.confidence {
+    margin-top: 8px;
+    color: #666;
+}
+
+
+.divider {
+    height: 1px;
+    background: #e8e8e8;
+    margin: 25px 0;
+}
+
+
+.sentence {
+    min-height: 100px;
+    margin-top: 12px;
+    padding: 20px;
+    background: #f7f8fc;
+    border-radius: 12px;
+    line-height: 1.6;
+}
+
+
+.resultButtons {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.resultButtons button:first-child {
+    background: #101828;
+    color: white;
+}
+
+
+.sosSection {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 30px;
+    padding: 30px;
+    border-radius: 20px;
+    background: #fff2f2;
+    border: 1px solid #ffd4d4;
+    margin-bottom: 50px;
+}
+
+.sosSection h2 {
+    margin-bottom: 8px;
+}
+
+.sosSection p {
+    color: #666;
+}
+
+
+.sosButton {
+    background: #d92d20;
+    color: white;
+    border: none;
+    padding: 18px 25px;
+    border-radius: 12px;
+    font-weight: bold;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+
+.features {
+    margin-bottom: 50px;
+}
+
+.features > h2 {
+    margin-bottom: 25px;
+    font-size: 30px;
+}
+
+
+.featureGrid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+}
+
+.feature {
+    padding: 25px;
+    background: white;
+    border-radius: 15px;
+    border: 1px solid #e5e5e5;
+}
+
+.feature div {
+    font-size: 35px;
+    margin-bottom: 15px;
+}
+
+.feature h3 {
+    margin-bottom: 10px;
+}
+
+.feature p {
+    color: #666;
+    line-height: 1.5;
+    font-size: 14px;
+}
+
+
+footer {
+    padding: 30px;
+    text-align: center;
+    color: #777;
+    background: white;
+}
+
+
+@media (max-width: 900px) {
+
+    .hero {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 30px;
+    }
+
+    .hero h1 {
+        font-size: 40px;
+    }
+
+    .heroIcon {
+        font-size: 100px;
+    }
+
+    .interpreter {
+        grid-template-columns: 1fr;
+    }
+
+    .featureGrid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .sosSection {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}
+
+
+@media (max-width: 600px) {
+
+    main {
+        padding: 20px 15px;
+    }
+
+    .hero {
+        padding: 30px;
+    }
+
+    .hero h1 {
+        font-size: 34px;
+    }
+
+    .featureGrid {
+        grid-template-columns: 1fr;
+    }
+
+    .cameraContainer {
+        height: 300px;
+    }
+}

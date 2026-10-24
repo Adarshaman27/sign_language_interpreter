@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SignBridge — Data Collector</title>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.20.0"></script>
+<style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family: Arial, Helvetica, sans-serif; background:#f7f8fc; color:#16181d; padding:30px; }
+    h1 { margin-bottom: 6px; }
+    .sub { color:#666; margin-bottom:25px; }
+    .layout { display:grid; grid-template-columns: 1.2fr 1fr; gap:25px; max-width:1200px; }
+    .card { background:white; border-radius:16px; padding:20px; border:1px solid #e6e8ee; box-shadow:0 8px 30px rgba(0,0,0,0.04); }
+    .cameraContainer { position:relative; width:100%; height:400px; background:#111; border-radius:12px; overflow:hidden; }
+    #camera { width:100%; height:100%; object-fit:cover; transform:scaleX(-1); }
+    #overlay { position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; }
+    select, input[type=text] { width:100%; padding:10px; margin:8px 0 16px; border-radius:8px; border:1px solid #ccc; font-size:14px; }
+    button { padding:12px 18px; border-radius:8px; border:1px solid #ddd; background:white; cursor:pointer; font-size:14px; }
+    #recordBtn { width:100%; padding:20px; font-size:18px; font-weight:bold; background:#101828; color:white; border:none; margin-top:10px; user-select:none; }
+    #recordBtn.recording { background:#d92d20; }
+    #recordBtn:disabled { opacity:0.5; cursor:not-allowed; }
+    .status { margin-top:12px; font-size:13px; color:#666; min-height:18px; }
+    table { width:100%; border-collapse: collapse; font-size:13px; margin-top:10px; }
+    th, td { text-align:left; padding:6px 4px; border-bottom:1px solid #eee; }
+    .lowCount { color:#d92d20; font-weight:bold; }
+    .okCount { color:#0a8f3c; font-weight:bold; }
+    .actions { display:flex; gap:10px; margin-top:15px; flex-wrap:wrap; }
+    .fileRow { margin-bottom:12px; }
+    #frameCount { font-size:12px; color:#999; }
+</style>
+</head>
+<body>
+
+<h1>🤟 SignBridge — Data Collector</h1>
+<p class="sub">Records gesture samples using the exact same feature extraction as app.js, so they drop straight into isl_dataset.json.</p>
+
+<div class="layout">
+
+    <div class="card">
+        <div class="cameraContainer">
+            <video id="camera" autoplay playsinline muted></video>
+            <canvas id="overlay"></canvas>
+        </div>
+
+        <label>Label to record</label>
+        <select id="labelSelect"></select>
+
+        <div class="fileRow">
+            <label>...or type a new label not in the list</label>
+            <input type="text" id="customLabel" placeholder="e.g. Water">
+        </div>
+
+        <button id="recordBtn" disabled>Loading camera + model...</button>
+        <div class="status" id="status"></div>
+        <div id="frameCount"></div>
+    </div>
+
+    <div class="card">
+        <h3>Existing dataset (optional)</h3>
+        <p class="sub" style="margin-bottom:10px;">Load your current isl_dataset.json to merge with new recordings on export.</p>
+        <input type="file" id="loadExisting" accept=".json">
+        <div id="loadedInfo" class="status"></div>
+
+        <h3 style="margin-top:20px;">Samples recorded this session</h3>
+        <table id="countsTable"><tbody></tbody></table>
+
+        <div class="actions">
+            <button id="exportBtn">⬇ Export merged dataset</button>
+            <button id="undoBtn">↩ Undo last recording</button>
+        </div>
+    </div>
+
+</div>
+
+<script type="module">
+import { HandLandmarker, FilesetResolver } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22-rc.20250304";
+
+const LABELS = ["Bank","Bird","Black","Boy","Brother","Car","Cell phone","Court","Cow","Death","Dog","Election","Fall","Fan","Father","Girl","Good Morning","Hat","Hello","House","I","Monday","Paint","Pen","Priest","Red","Shoes","Store or Shop","Summer","T-Shirt","Teacher","Thank you","Time","White","Window","Year","big large","dry","good","happy","hot","it","long","loud","new","quiet","short","small little","train ticket","you (plural)"];
+
+const labelSelect = document.getElementById("labelSelect");
+LABELS.forEach(l => {
+    const opt = document.createElement("option");
+    opt.value = l; opt.textContent = l;
+    labelSelect.appendChild(opt);
+});
+
+const video = document.getElementById("camera");
+const canvas = document.getElementById("overlay");
+const recordBtn = document.getElementById("recordBtn");
+const statusEl = document.getElementById("status");
+const frameCountEl = document.getElementById("frameCount");
+const countsTable = document.querySelector("#countsTable tbody");
+
+let handLandmarker = null;
+let recording = false;
+let currentFrames = [];
+let sessionSamples = [];   // {label, frames}
+let existingDataset = [];  // loaded from file, merged on export
+let rafId = null;
+
+// ---- feature extraction: identical to app.js ----
+function normalizeHand(landmarks) {
+    const output = [];
+    if (!landmarks || landmarks.length !== 21) return new Array(63).fill(0);
+    const wrist = landmarks[0];
+    const middleMCP = landmarks[9];
+    const dx = middleMCP.x - wrist.x, dy = middleMCP.y - wrist.y, dz = middleMCP.z - wrist.z;
+    let scale = Math.sqrt(dx*dx + dy*dy + dz*dz);
+    if (!Number.isFinite(scale) || scale < 0.000001) scale = 1;
+    for (const point of landmarks) {
+        output.push((point.x - wrist.x) / scale);
+        output.push((point.y - wrist.y) / scale);
+        output.push((point.z - wrist.z) / scale);
+    }
+    return output;
+}
+
+function createFeatures(results) {
+    let leftHand = new Array(63).fill(0);
+    let rightHand = new Array(63).fill(0);
+    if (results.landmarks && results.handednesses) {
+        for (let i = 0; i < results.landmarks.length; i++) {
+            const landmarks = results.landmarks[i];
+            const handInfo = results.handednesses[i];
+            const handType = handInfo && handInfo[0] && handInfo[0].categoryName;
+            const normalized = normalizeHand(landmarks);
+            if (handType === "Left") leftHand = normalized;
+            else if (handType === "Right") rightHand = normalized;
+        }
+    }
+    return [...leftHand, ...rightHand];
+}
+
+function drawHands(results) {
+    const ctx = canvas.getContext("2d");
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    if (!results.landmarks) return;
+    const connections = [[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[5,9],[9,10],[10,11],[11,12],[9,13],[13,14],[14,15],[15,16],[13,17],[17,18],[18,19],[19,20],[0,17]];
+    ctx.fillStyle = "#8ee6d1";
+    ctx.strokeStyle = "#8ee6d1";
+    for (const landmarks of results.landmarks) {
+        for (const point of landmarks) {
+            const x = (1 - point.x) * canvas.width;
+            const y = point.y * canvas.height;
+            ctx.beginPath(); ctx.arc(x, y, 5, 0, Math.PI*2); ctx.fill();
+        }
+        for (const [a,b] of connections) {
+            const p1 = landmarks[a], p2 = landmarks[b];
+            ctx.beginPath();
+            ctx.moveTo((1-p1.x)*canvas.width, p1.y*canvas.height);
+            ctx.lineTo((1-p2.x)*canvas.width, p2.y*canvas.height);
+            ctx.stroke();
+        }
+    }
+}
+
+let lastVideoTime = -1;
+function loop() {
+    if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
+        const t = video.currentTime;
+        if (t !== lastVideoTime) {
+            lastVideoTime = t;
+            const results = handLandmarker.detectForVideo(video, performance.now());
+            drawHands(results);
+            if (recording && results.landmarks && results.landmarks.length > 0) {
+                currentFrames.push(createFeatures(results));
+                frameCountEl.textContent = currentFrames.length + " frames captured";
+            }
+        }
+    }
+    rafId = requestAnimationFrame(loop);
+}
+
+async function init() {
+    statusEl.textContent = "Requesting camera...";
+    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user", width:{ideal:1280}, height:{ideal:720} }, audio:false });
+    video.srcObject = stream;
+    await video.play();
+
+    const vision = await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22-rc.20250304/wasm");
+    handLandmarker = await HandLandmarker.createFromOptions(vision, {
+        baseOptions: { modelAssetPath: "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task", delegate: "GPU" },
+        runningMode: "VIDEO", numHands: 2,
+        minHandDetectionConfidence: 0.5, minHandPresenceConfidence: 0.5, minTrackingConfidence: 0.5
+    });
+
+    recordBtn.disabled = false;
+    recordBtn.textContent = "Hold to record";
+    statusEl.textContent = "Ready. Pick a label, then press and hold the button while you sign.";
+    loop();
+}
+
+function currentLabel() {
+    const custom = document.getElementById("customLabel").value.trim();
+    return custom || labelSelect.value;
+}
+
+function startRecording() {
+    if (recording) return;
+    recording = true;
+    currentFrames = [];
+    recordBtn.classList.add("recording");
+    recordBtn.textContent = "Recording... release when done";
+}
+
+function stopRecording() {
+    if (!recording) return;
+    recording = false;
+    recordBtn.classList.remove("recording");
+    recordBtn.textContent = "Hold to record";
+
+    if (currentFrames.length < 5) {
+        statusEl.textContent = "Too short (" + currentFrames.length + " frames) — discarded. Hold a bit longer.";
+        frameCountEl.textContent = "";
+        return;
+    }
+
+    const label = currentLabel();
+    sessionSamples.push({ label, frames: currentFrames });
+    statusEl.textContent = "Saved \"" + label + "\" (" + currentFrames.length + " frames). Total this session: " + sessionSamples.length;
+    frameCountEl.textContent = "";
+    currentFrames = [];
+    renderCounts();
+}
+
+recordBtn.addEventListener("mousedown", startRecording);
+recordBtn.addEventListener("mouseup", stopRecording);
+recordBtn.addEventListener("mouseleave", () => { if (recording) stopRecording(); });
+recordBtn.addEventListener("touchstart", (e) => { e.preventDefault(); startRecording(); });
+recordBtn.addEventListener("touchend", (e) => { e.preventDefault(); stopRecording(); });
+
+document.getElementById("undoBtn").addEventListener("click", () => {
+    const removed = sessionSamples.pop();
+    if (removed) statusEl.textContent = "Removed last sample: \"" + removed.label + "\"";
+    renderCounts();
+});
+
+function renderCounts() {
+    const counts = {};
+    sessionSamples.forEach(s => counts[s.label] = (counts[s.label]||0) + 1);
+    countsTable.innerHTML = "";
+    Object.keys(counts).sort().forEach(label => {
+        const tr = document.createElement("tr");
+        const cls = counts[label] >= 15 ? "okCount" : "lowCount";
+        tr.innerHTML = `<td>${label}</td><td class="${cls}">${counts[label]}</td>`;
+        countsTable.appendChild(tr);
+    });
+}
+
+document.getElementById("loadExisting").addEventListener("change", (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+        try {
+            existingDataset = JSON.parse(reader.result);
+            document.getElementById("loadedInfo").textContent =
+                "Loaded " + existingDataset.length + " existing samples. These will be merged on export.";
+        } catch (err) {
+            document.getElementById("loadedInfo").textContent = "Could not parse that file as JSON.";
+        }
+    };
+    reader.readAsText(file);
+});
+
+document.getElementById("exportBtn").addEventListener("click", () => {
+    if (sessionSamples.length === 0) {
+        alert("No new samples recorded yet.");
+        return;
+    }
+    const merged = [...existingDataset, ...sessionSamples];
+    const blob = new Blob([JSON.stringify(merged)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "isl_dataset_merged.json";
+    a.click();
+    URL.revokeObjectURL(url);
+});
+
+init().catch(err => {
+    statusEl.textContent = "Error: " + err.message;
+    console.error(err);
+});
+</script>
+</body>
+</html>
