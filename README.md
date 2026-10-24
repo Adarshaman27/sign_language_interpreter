@@ -10,16 +10,16 @@ and reads it aloud.
 
 ```
 signbridge/
-├── frontend/           # served by the Flask backend
+├── frontend/           # static Vercel frontend and browser assets
 │   ├── index.html
 │   ├── style.css
 │   └── app.js
+│   ├── model/           # TensorFlow.js model files
+│   └── training/        # labels.json served to the browser
 ├── backend/
 │   ├── app.py
 │   ├── requirements.txt
 │   └── .env.example
-├── model/               # generated - see Step 1 below
-│   └── README.txt
 └── training/
     ├── train.py
     ├── convert_model.py
@@ -30,4 +30,9 @@ signbridge/
     ├── isl_model_clean.keras  # already-converted full model
     └── isl_dataset.json       # training data
 ```
+
+Vercel serves `frontend/` at `/` and routes `/api/*` to the Flask service in
+`backend/`. Run `vercel dev` from the repository root to test both services
+together. The browser model files live under `frontend/model/`; `training/train.py`
+also updates the browser-facing copy of `labels.json` under `frontend/training/`.
 

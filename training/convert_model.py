@@ -98,4 +98,4 @@ with open("labels.json", "w") as f:
     json.dump(labels, f, indent=2)
 
 print("Labels saved.")
-print("\nNext: tensorflowjs_converter --input_format keras isl_model_clean.keras ../model")
+print("\nNext: tensorflowjs_converter --input_format keras isl_model_clean.keras ../frontend/model")

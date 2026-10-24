@@ -1,7 +1,7 @@
 import os
 from pathlib import Path
 
-from flask import Flask, jsonify, request, send_from_directory
+from flask import Flask, jsonify, request
 from flask_cors import CORS
 from dotenv import load_dotenv
 from google import genai
@@ -11,11 +11,6 @@ from google.genai import types
 # ============================================================
 # PATHS
 # ============================================================
-
-BASE_DIR = Path(__file__).resolve().parent.parent
-FRONTEND_DIR = BASE_DIR / "frontend"
-MODEL_DIR = BASE_DIR / "model"
-TRAINING_DIR = BASE_DIR / "training"
 
 # Load backend/.env specifically
 load_dotenv(Path(__file__).resolve().parent / ".env")
@@ -41,43 +36,6 @@ if GEMINI_API_KEY:
 else:
     client = None
     print("WARNING: GEMINI_API_KEY not found.")
-
-
-# ============================================================
-# FRONTEND
-# ============================================================
-
-@app.route("/")
-def home():
-    return send_from_directory(FRONTEND_DIR, "index.html")
-
-
-@app.route("/<path:filename>")
-def frontend_files(filename):
-    file_path = FRONTEND_DIR / filename
-
-    if file_path.exists() and file_path.is_file():
-        return send_from_directory(FRONTEND_DIR, filename)
-
-    return "File not found", 404
-
-
-# ============================================================
-# MODEL FILES
-# ============================================================
-
-@app.route("/model/<path:filename>")
-def model_files(filename):
-    return send_from_directory(MODEL_DIR, filename)
-
-
-# ============================================================
-# LABELS
-# ============================================================
-
-@app.route("/training/labels.json")
-def labels():
-    return send_from_directory(TRAINING_DIR, "labels.json")
 
 
 # ============================================================

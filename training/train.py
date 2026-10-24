@@ -127,12 +127,19 @@ def main():
         print("Below 80% — record more samples (especially for labels flagged above) and rerun.")
 
     model.save("isl_model.h5")
+    labels_json = json.dumps(labels_sorted)
     with open("labels.json", "w") as f:
-        json.dump(labels_sorted, f)
+        f.write(labels_json)
+
+    frontend_labels_path = (
+        Path(__file__).parent.parent / "frontend" / "training" / "labels.json"
+    )
+    frontend_labels_path.parent.mkdir(parents=True, exist_ok=True)
+    frontend_labels_path.write_text(labels_json, encoding="utf-8")
 
     print("\nSaved isl_model.h5 and labels.json.")
     print("Next: python convert_model.py")
-    print("      tensorflowjs_converter --input_format keras isl_model_clean.keras ../model")
+    print("      tensorflowjs_converter --input_format keras isl_model_clean.keras ../frontend/model")
 
 
 if __name__ == "__main__":
